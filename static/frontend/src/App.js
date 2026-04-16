@@ -4,18 +4,26 @@ import { invoke, view } from "@forge/bridge";
 function App() {
   const [config, setConfig] = useState({});
   const [isSettings, setIsSettings] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const init = async () => {
-      const ctx = await view.getContext();
+      try {
+        const ctx = await view.getContext();
+        console.log("CTX:", ctx);
 
-      // Detect if we're in settings page
-      if (ctx.extension.type === "jira:projectSettingsPage") {
-        setIsSettings(true);
+        // SAFE context check
+        if (ctx && ctx.extension && ctx.extension.type === "jira:projectSettingsPage") {
+          setIsSettings(true);
+        }
+
+        const data = await invoke("getConfig");
+        setConfig(data || {});
+      } catch (err) {
+        console.error("Init error:", err);
+      } finally {
+        setLoading(false);
       }
-
-      const data = await invoke("getConfig");
-      setConfig(data);
     };
 
     init();
@@ -23,9 +31,25 @@ function App() {
 
   // SAVE CONFIG
   const save = async () => {
-    await invoke("saveConfig", config);
-    alert("Saved successfully");
+    try {
+      await invoke("saveConfig", config);
+      alert("Saved successfully");
+    } catch (err) {
+      console.error("Save error:", err);
+      alert("Error saving configuration");
+    }
   };
+
+  // =========================
+  // LOADING STATE
+  // =========================
+  if (loading) {
+    return (
+      <div style={{ padding: "10px" }}>
+        Loading...
+      </div>
+    );
+  }
 
   // =========================
   // SETTINGS SCREEN (ADMIN)
@@ -38,7 +62,7 @@ function App() {
         <div style={{ marginBottom: "12px" }}>
           <label style={{ fontWeight: "bold" }}>Classification</label><br />
           <input
-            value={config.classification || ""}
+            value={config?.classification || ""}
             onChange={(e) =>
               setConfig({ ...config, classification: e.target.value })
             }
@@ -53,7 +77,7 @@ function App() {
         <div style={{ marginBottom: "12px" }}>
           <label style={{ fontWeight: "bold" }}>Message</label><br />
           <textarea
-            value={config.message || ""}
+            value={config?.message || ""}
             onChange={(e) =>
               setConfig({ ...config, message: e.target.value })
             }
@@ -101,11 +125,11 @@ function App() {
         }}
       >
         <div style={{ fontWeight: "bold", fontSize: "14px" }}>
-          {config.classification || "Not configured"}
+          {config?.classification || "Not configured"}
         </div>
 
         <div style={{ marginTop: "4px", fontSize: "13px" }}>
-          {config.message || "No policy defined"}
+          {config?.message || "No policy defined"}
         </div>
       </div>
     </div>
