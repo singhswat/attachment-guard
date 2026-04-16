@@ -12,12 +12,15 @@ function App() {
         const ctx = await view.getContext();
         console.log("CTX:", ctx);
 
-        // SAFE context check
-        if (ctx && ctx.extension && ctx.extension.type === "jira:projectSettingsPage") {
+        // 🔥 MORE RELIABLE DETECTION
+        // projectSettingsPage has NO issue key
+        if (!ctx?.extension?.issue) {
           setIsSettings(true);
         }
 
         const data = await invoke("getConfig");
+        console.log("CONFIG:", data);
+
         setConfig(data || {});
       } catch (err) {
         console.error("Init error:", err);
@@ -44,11 +47,7 @@ function App() {
   // LOADING STATE
   // =========================
   if (loading) {
-    return (
-      <div style={{ padding: "10px" }}>
-        Loading...
-      </div>
-    );
+    return <div style={{ padding: "10px" }}>Loading...</div>;
   }
 
   // =========================
